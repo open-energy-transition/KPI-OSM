@@ -5,6 +5,7 @@
 4. To see the % capacity you added to a country , you can go to https://openinframap.org/stats and see total capacity of a country. Then in the terminal, you can paste that, and it will calculate it for you.
 
 
-## Issues
+## Issues/Caveats
 1. When two power plants are part of one multipolygon (ex: Ezra power plants in South sudan), it only counts as one in the tag value.
 2. In OSM, there is no query to distinguish modification and creation. So if all you did was add a name, then that power plant will be counted to you. The only distinguisher of a node/way/relation, is the "version" in the changeset of OSM.
+3. If you do not find capacity of a plant, then it's not counted
