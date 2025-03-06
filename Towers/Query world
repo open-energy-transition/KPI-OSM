@@ -1,6 +1,12 @@
 [out:json][timeout:400];
-nwr["power"= "tower"](user:"Andreas Hernandez")->.towers;
+node["power"= "tower"](user:"Andreas Hernandez")->.towers;
+node["power"="pole"](user:"Andreas Hernandez")(area.searchArea) -> .poles;
 
-.towers out body;
+(
+.towers;
+.poles;
+);
+
+out body;
 >;
 out skel qt;
