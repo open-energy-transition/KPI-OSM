@@ -1,0 +1,38 @@
+import pandas as pd
+
+# Function to convert to MW
+def convert_to_mw(value):
+    value = str(value).strip()
+    if value.lower().endswith("kwp"):
+        return float(value[:-3]) / 1000  # Remove "kwp" and convert to MW
+    elif value.lower().endswith("kw"):
+        return float(value[:-2]) / 1000  # Remove "kW" and convert to MW
+    elif value.lower().endswith("mw"):
+        return float(value[:-2])         # Remove "MW" and use as is
+    elif value.lower().endswith("mwp"):
+        return float(value[:-3])         # Remove "MWp" and use as is
+    else:
+        return 0  # Ignore invalid entries
+
+# Get multi-line input from the user
+print("Paste power values (one per line) and press Enter twice to finish:")
+lines = []
+while True:
+    line = input()
+    if line == "":  # Stop reading input when an empty line is entered
+        break
+    lines.append(line)
+
+# Convert the list into a pandas DataFrame
+df = pd.DataFrame(lines, columns=["plant:output:electricity"])
+
+# Apply the conversion function to each value
+df["Output_MW"] = df["plant:output:electricity"].apply(convert_to_mw)
+
+# Sum the converted values
+total_capacity = df["Output_MW"].sum()
+
+# Print the results
+print("\nProcessed Data:")
+print(df)
+print(f"\nTotal Capacity: {total_capacity} MW")
