@@ -13,6 +13,14 @@ relation["boundary"="administrative"]["admin_level"="2"](bn.places) -> .admin_bo
 // Find all power towers within the administrative boundary
 node["power"="tower"](user:"Andreas Hernandez")(area.searchArea) -> .towers;
 
-.towers out body;
+// Find all power poles within the administrative boundary
+node["power"="pole"](user:"Andreas Hernandez")(area.searchArea) -> .poles;
+
+(
+.towers;
+.poles;
+);
+
+out body;
 >;
 out skel qt;
