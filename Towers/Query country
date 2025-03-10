@@ -4,8 +4,6 @@ node["place"~"country|state|province"]({{bbox}}) -> .places;
 
 relation["boundary"="administrative"]["admin_level"="2"](bn.places) -> .admin_boundary;
 
-.admin_boundary map_to_area -> .searchArea;
-
 // Map the relation to an area
 .admin_boundary map_to_area -> .searchArea;
 
