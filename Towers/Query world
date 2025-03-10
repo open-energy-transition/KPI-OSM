@@ -1,6 +1,6 @@
 [out:json][timeout:400];
 node["power"= "tower"](user:"Andreas Hernandez")->.towers;
-node["power"="pole"](user:"Andreas Hernandez")(area.searchArea) -> .poles;
+node["power"="pole"](user:"Andreas Hernandez") -> .poles;
 
 (
 .towers;
