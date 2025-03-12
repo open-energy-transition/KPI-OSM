@@ -16,6 +16,7 @@ relation["power"="plant"](user:"Andreas Hernandez")(area.searchArea)-> .plant_re
   .plant_nodes;
   .plant_ways;
   .plant_relations;
+  .admin_boundary;
 );
 
 out body;
