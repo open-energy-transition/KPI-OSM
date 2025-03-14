@@ -6,5 +6,6 @@
 ## To see the % towers you have placed in a country
 1. Run query total_towers_country query
 2. Select all, and see the authors. Look for your naem and you can see your %. (To see authors, alt+shift+a)
+
 ![Screenshot from 2025-03-14 11-20-31](https://github.com/user-attachments/assets/ef7ab49c-231a-4b20-b6d3-c3a633d85210)
 
