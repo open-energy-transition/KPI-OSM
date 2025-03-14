@@ -30,7 +30,6 @@ node.poles(w.high_voltage_lines) -> .hv_poles;
 (
 .towers;
 .hv_poles;
-.admin_boundary;
 )-> .all_towers;
 
 (
