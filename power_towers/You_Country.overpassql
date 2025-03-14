@@ -4,21 +4,38 @@ node["place"~"country|state|province"]({{bbox}}) -> .places;
 
 relation["boundary"="administrative"]["admin_level"="2"](bn.places) -> .admin_boundary;
 
+.admin_boundary map_to_area -> .searchArea;
+
 // Map the relation to an area
 .admin_boundary map_to_area -> .searchArea;
 
 
 // Find all power towers within the administrative boundary
-node["power"="tower"](user:"Andreas Hernandez")(area.searchArea) -> .towers;
+node["power"="tower"](area.searchArea) -> .towers;
 
 
 // Find all power poles within the administrative boundary
-node["power"="pole"](user:"Andreas Hernandez")(area.searchArea) -> .poles;
+node["power"="pole"](area.searchArea) -> .poles;
+
+// Find all power lines that are connected to towers within the administrative boundary
+way["power"="line"](area.searchArea)
+  (bn.towers) -> .lines_connected;
+
+// Find all high-voltage power lines (>= 90 kV) within the administrative boundary
+way["power"="line"]["voltage"](if:t["voltage"] >= 90000)(area.searchArea) -> .high_voltage_lines;
+
+// Find only poles that are part of high-voltage lines within the administrative boundary
+node.poles(w.high_voltage_lines) -> .hv_poles;
 
 (
 .towers;
-.poles;
+.hv_poles;
 .admin_boundary;
+)-> .all_towers:
+
+(
+  nwr.all_towers(user:"Andreas Hernandez");
+  nwr.all_towers(user:"Tobias Augspurger");
 );
 
 out body;
