@@ -16,6 +16,7 @@
 
 ### Output
 This script gives you a table with the number of towers per voltage level placed by the usernames:
+
 ![image](https://github.com/user-attachments/assets/5dc2e79c-28f9-4703-84fb-d482826faf3e)
 
 
