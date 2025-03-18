@@ -1,5 +1,5 @@
 # Steps 
-## :electron: To see the distribution of the towers placed in terms of voltage
+## :electron:To see the distribution of the towers placed in terms of voltage
 1. Run the py script "Towers_voltage.py"
 2. In the terminal, add the country of choice, and the usernames of mappers
 
