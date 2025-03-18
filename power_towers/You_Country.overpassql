@@ -33,8 +33,8 @@ node.poles(w.high_voltage_lines) -> .hv_poles;
 )-> .all_towers;
 
 (
-  nwr.all_towers(user:"Andreas Hernandez");
-  nwr.all_towers(user:"Tobias Augspurger");
+  nwr.all_towers(user_touched:"Andreas Hernandez");
+  nwr.all_towers(user_touched:"Tobias Augspurger");
 );
 
 out body;
