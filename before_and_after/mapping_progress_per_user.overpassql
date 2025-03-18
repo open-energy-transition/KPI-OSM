@@ -75,8 +75,8 @@ node["power"="portal"](area.searchArea) -> .portal_nodes;
 
 //Apply your/our usernames to the data
 (
-  nwr.all_personaldata(user:"Andreas Hernandez");
-  nwr.all_personaldata(user:"Tobias Augspurger");
+  nwr.all_personaldata(user_touched:"Andreas Hernandez");
+  nwr.all_personaldata(user_touched:"Tobias Augspurger");
 );
 
 out body;
