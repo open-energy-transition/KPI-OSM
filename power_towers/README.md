@@ -11,8 +11,7 @@
 
 ## To see the distribution of the towers placed in terms of voltage
 1. Run the py script "Towers_voltage.py"
-2. Change the name of the country into the country that you are interested in line 7.
-3. In line 33, change/add your username to fetch for towers created by you.
+2. In the terminal, add the country of choice, and the usernames of mappers
 
 ### Output
 This script gives you a table with the number of towers per voltage level placed by the usernames:
