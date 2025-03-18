@@ -4,9 +4,8 @@
 3. If you want the % capacity that you have mapped, find the total capacity of your country of choice at https://openinframap.org/stats, and type it in the python terminal (eg. 8700MW).
 
 ## Example Output
-[![Screenshot from 2025-03-18 15-24-23](https://github.com/user-attachments/assets/599d8b0f-ac9f-4885-83e5-d56a2a97c8b0)]
 
-
+![image](https://github.com/user-attachments/assets/76190443-3249-4107-855e-70bc43e6d028)
 
 ## Issues/Caveats
 1. When two power plants are part of one multipolygon (ex: Ezra power plants in South sudan), it only counts as one in the tag value.
