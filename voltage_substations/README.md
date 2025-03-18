@@ -1,7 +1,12 @@
 # Steps
-1. Run query in JOSM to find substations modified or created by you
-2. Select all substation -> in the Tags Window (on the right), right click on the "voltage" **value**, and copy **value**.
-3. Run python script, paste values and press enter. This will show you the number of substations you have edited. It will also show you a small table with the different voltage substations and the count.
+1. Run python_voltagescript
+2. Enter in the terminal, the country name and the usernames of the mappers
+
+## Output
+This will show you the number of substations you have edited. It will also show you a small table with the different voltage substations and the count.
+
+![image](https://github.com/user-attachments/assets/6c23d432-b63a-47c1-bd6d-1ef535142ec1)
+
 
 
 ## Issues/Caveats
