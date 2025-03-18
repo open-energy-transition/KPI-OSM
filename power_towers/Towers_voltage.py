@@ -30,10 +30,10 @@ node.poles(w.high_voltage_lines) -> .hv_poles;
 
 // Combine all towers and poles created by Andreas or Tobias
 (
-  node.towers(user:"Andreas Hernandez");
-  node.towers(user:"Tobias Augspurger");
-  node.hv_poles(user:"Andreas Hernandez");
-  node.hv_poles(user:"Tobias Augspurger");
+  node.towers(user_touched:"Andreas Hernandez");
+  node.towers(user_touched:"Tobias Augspurger");
+  node.hv_poles(user_touched:"Andreas Hernandez");
+  node.hv_poles(user_touched:"Tobias Augspurger");
 ) -> .my_nodes;
 
 // Fetch all ways connected to your nodes, regardless of who last edited them
