@@ -1,8 +1,8 @@
 [out:json][timeout:400];
 
-node["power"="substation"](user:"Andreas Hernandez")-> .substation_nodes;
-way["power"="substation"](user:"Andreas Hernandez") -> .substation_ways;
-relation["power"="substation"](user:"Andreas Hernandez")-> .substation_relations;
+node["power"="substation"](user_touched:"Andreas Hernandez")-> .substation_nodes;
+way["power"="substation"](user_touched:"Andreas Hernandez") -> .substation_ways;
+relation["power"="substation"](user_touched:"Andreas Hernandez")-> .substation_relations;
 
 // Combine all relevant results
 (
