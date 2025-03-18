@@ -11,4 +11,5 @@ This will show you the number of substations you have edited. It will also show 
 
 ## ❗Issues/Caveats
 1. In OSM, there is no query to distinguish modification and creation. So if all you did was add a name, then that power plant will be counted to you. The only distinguisher of a node/way/relation, is the "version" in the changeset of OSM.
-3. If you do not find capacity of a plant, then it's not counted
+2. Issues may arise since not all voltage values have been cleaned for (ex: 220kv;110kv/60kv).
+3. If you do not find the voltage, then it's not counted in the table. 
