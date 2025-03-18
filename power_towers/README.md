@@ -1,5 +1,5 @@
 # Steps 
-## To see the distribution of the towers placed in terms of voltage
+## :electron: To see the distribution of the towers placed in terms of voltage
 1. Run the py script "Towers_voltage.py"
 2. In the terminal, add the country of choice, and the usernames of mappers
 
@@ -8,11 +8,11 @@ This script gives you a table with the number of towers per voltage level placed
 
 ![image](https://github.com/user-attachments/assets/5dc2e79c-28f9-4703-84fb-d482826faf3e)
 
-## Number of towers placed
+## 🗼 Number of towers placed
 1. Run "You_country" or "World" queries in JOSM to find towers modified or created by **you**
 2. Select all towers -> in the selection Window (on the right), you can see the number of nodes (towers).
 
-## To see the % towers you have placed in a country
+## ✨ To see the % towers you have placed in a country
 1. Run query total_towers_country query
 2. Select all, and see the authors. Look for your name and you can see your %. (To see authors, alt+shift+a)
 
