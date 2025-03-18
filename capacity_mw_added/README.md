@@ -1,7 +1,7 @@
 # Steps
 1. Run capacity_added.py
 2. It will ask for the country of choice, and the usernames of the mappers. 
-3. If you want the % capacity that you have mapped, find the total capacity at [https://openinframap.org/stats], and type it in the python terminal.
+3. If you want the % capacity that you have mapped, find the total capacity at https://openinframap.org/stats, and type it in the python terminal.
 
 
 ## Issues/Caveats
