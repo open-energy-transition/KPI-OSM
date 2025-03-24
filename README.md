@@ -1,5 +1,5 @@
 # KPI-OSM
-These are some queries and code to determine teams KPI's in OSM.
+This repository contains scripts (Python and Overpass) to measure your mapping progress.
 
 ## 🔄 Before and after script
 This script gives you a good visualisation of the mapping activities users have made. 
