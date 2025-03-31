@@ -16,5 +16,8 @@ This folder contains a python script which gives you the total towers and high-v
 ## 🔌 Voltage Substations
 This script gives you the total amount of substations you have mapped/edited in a country, as well as a table with the distribution of these substations based on voltage.
 
+## :straight_ruler: Power line length
+This script gives you the total line length in km of power lines (ways) edited by you. It also gives a table with the distribution based on voltage.
+
 
 
