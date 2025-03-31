@@ -94,7 +94,7 @@ def display_results(tower_voltages):
 
 # ---------------------- Main Execution ---------------------- #
 if __name__ == "__main__":
-    country = input(f"Enter the country name (default: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
+    country = input(f"Enter the country name (Example: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
     users = input("Enter OSM usernames separated by commas: ").strip()
     users = [user.strip() for user in users.split(",")] if users else []
     
