@@ -128,6 +128,13 @@
       animation: spin 1s ease-in-out infinite;
       margin-left: 10px;
     }
+    .info-link {
+      color: #3498db;
+      text-decoration: none;
+    }
+    .info-link:hover {
+      text-decoration: underline;
+    }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -147,8 +154,8 @@
       <div class="tool-content" id="tower-content">
         <form id="towerForm">
           <div class="form-group">
-            <label for="towerCountry">Country:</label>
-            <input type="text" id="towerCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
+            <label for="towerCountry">Country (Example: Bolivia):</label>
+            <input type="text" id="towerCountry" placeholder="Enter country name" required>
           </div>
           <div class="form-group">
             <label for="towerUsers">OSM Usernames (comma separated):</label>
@@ -168,8 +175,8 @@
       <div class="tool-content" id="substation-content">
         <form id="substationForm">
           <div class="form-group">
-            <label for="substationCountry">Country:</label>
-            <input type="text" id="substationCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
+            <label for="substationCountry">Country (Example: Bolivia):</label>
+            <input type="text" id="substationCountry" placeholder="Enter country name" required>
           </div>
           <div class="form-group">
             <label for="substationUsers">OSM Usernames (comma separated):</label>
@@ -189,15 +196,15 @@
       <div class="tool-content" id="capacity-content">
         <form id="capacityForm">
           <div class="form-group">
-            <label for="capacityCountry">Country:</label>
-            <input type="text" id="capacityCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
+            <label for="capacityCountry">Country (Example: Bolivia):</label>
+            <input type="text" id="capacityCountry" placeholder="Enter country name" required>
           </div>
           <div class="form-group">
             <label for="capacityUsers">OSM Usernames (comma separated):</label>
-            <input type="text" id="capacityUsers" value="Andreas Hernandez, Tobias Augspurger" placeholder="e.g., user1,user2">
+            <input type="text" id="capacityUsers" placeholder="e.g., user1,user2">
           </div>
           <div class="form-group">
-            <label for="totalCapacity">Total Country Capacity (MW):</label>
+            <label for="totalCapacity">Total Country Capacity (MW): <a href="https://openinframap.org/stats" target="_blank" class="info-link">(Find on OpenInfraMap)</a></label>
             <input type="text" id="totalCapacity" placeholder="Enter total MW capacity from OpenInfraMap">
           </div>
           <button type="submit" id="capacitySubmit">Calculate Capacity</button>
@@ -462,7 +469,7 @@
       e.preventDefault();
       const country = document.getElementById('capacityCountry').value.trim();
       const usersInput = document.getElementById('capacityUsers').value.trim();
-      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : ["Andreas Hernandez", "Tobias Augspurger"];
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
       const totalCapacityInput = document.getElementById('totalCapacity').value.trim();
       const button = document.getElementById('capacitySubmit');
       const resultsDiv = document.getElementById('capacityResults');
@@ -509,8 +516,9 @@
         html += `<p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>`;
         
         if (totalCountryCapacity > 0) {
+          // Fixed percentage calculation - was previously multiplying by 100 twice
           const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
-          html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity.</p>`;
+          html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>`;
         } else if (totalCapacityInput) {
           html += `<p class="error">Invalid total capacity input: ${totalCapacityInput}</p>`;
         }
