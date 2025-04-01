@@ -131,13 +131,6 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .download-btn {
-      background-color: #3498db;
-      margin-top: 10px;
-    }
-    .download-btn:hover {
-      background-color: #2980b9;
-    }
   </style>
 </head>
 <body>
@@ -155,7 +148,7 @@
         <form id="towerForm">
           <div class="form-group">
             <label for="towerCountry">Country:</label>
-            <input type="text" id="towerCountry" placeholder="e.g., Mozambique" required>
+            <input type="text" id="towerCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
           </div>
           <div class="form-group">
             <label for="towerUsers">OSM Usernames (comma separated):</label>
@@ -176,7 +169,7 @@
         <form id="substationForm">
           <div class="form-group">
             <label for="substationCountry">Country:</label>
-            <input type="text" id="substationCountry" placeholder="e.g., Mozambique" required>
+            <input type="text" id="substationCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
           </div>
           <div class="form-group">
             <label for="substationUsers">OSM Usernames (comma separated):</label>
@@ -185,27 +178,6 @@
           <button type="submit" id="substationSubmit">Analyze Substations</button>
         </form>
         <div id="substationResults" class="results"></div>
-      </div>
-    </div>
-
-    <!-- Line Length Analysis Tool -->
-    <div class="tool-card">
-      <div class="tool-header" onclick="toggleTool('line')">
-        <h2>Power Line Length Analysis <span>▼</span></h2>
-      </div>
-      <div class="tool-content" id="line-content">
-        <form id="lineForm">
-          <div class="form-group">
-            <label for="lineCountry">Country:</label>
-            <input type="text" id="lineCountry" placeholder="e.g., Mozambique" required>
-          </div>
-          <div class="form-group">
-            <label for="lineUsers">OSM Usernames (comma separated):</label>
-            <input type="text" id="lineUsers" placeholder="e.g., user1,user2">
-          </div>
-          <button type="submit" id="lineSubmit">Calculate Line Lengths</button>
-        </form>
-        <div id="lineResults" class="results"></div>
       </div>
     </div>
 
@@ -218,11 +190,15 @@
         <form id="capacityForm">
           <div class="form-group">
             <label for="capacityCountry">Country:</label>
-            <input type="text" id="capacityCountry" placeholder="e.g., Mozambique" required>
+            <input type="text" id="capacityCountry" value="Bolivia" placeholder="e.g., Bolivia" required>
           </div>
           <div class="form-group">
             <label for="capacityUsers">OSM Usernames (comma separated):</label>
-            <input type="text" id="capacityUsers" placeholder="e.g., user1,user2">
+            <input type="text" id="capacityUsers" value="Andreas Hernandez, Tobias Augspurger" placeholder="e.g., user1,user2">
+          </div>
+          <div class="form-group">
+            <label for="totalCapacity">Total Country Capacity (MW):</label>
+            <input type="text" id="totalCapacity" placeholder="Enter total MW capacity from OpenInfraMap">
           </div>
           <button type="submit" id="capacitySubmit">Calculate Capacity</button>
         </form>
@@ -250,68 +226,154 @@
     // Initialize - hide all tool contents except first
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('substation-content').style.display = 'none';
-      document.getElementById('line-content').style.display = 'none';
       document.getElementById('capacity-content').style.display = 'none';
     });
 
-    // Tower Analysis Section
-document.getElementById('towerForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const country = document.getElementById('towerCountry').value.trim();
-  const users = document.getElementById('towerUsers').value.trim();
-  const button = document.getElementById('towerSubmit');
-  const resultsDiv = document.getElementById('towerResults');
-  
-  button.disabled = true;
-  button.innerHTML = 'Analyzing <span class="loading"></span>';
-  resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
-  
-  try {
-    const query = `
-      [out:json][timeout:400];
-      relation["boundary"="administrative"][~"^name(:en)?$"~"${country}",i]->.admin_boundary;
-      .admin_boundary map_to_area ->.searchArea;
+    // Tower Analysis - Exact implementation of Python script
+    document.getElementById('towerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const country = document.getElementById('towerCountry').value.trim();
+      const usersInput = document.getElementById('towerUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
+      const button = document.getElementById('towerSubmit');
+      const resultsDiv = document.getElementById('towerResults');
       
-      node["power"="tower"](area.searchArea)->.towers;
-      node["power"="pole"](area.searchArea)->.poles;
-      way["power"="line"](area.searchArea)(bn.towers)->.lines_connected;
-      way["power"="line"]["voltage"](if:number(t["voltage"])>=90000)(area.searchArea)->.high_voltage_lines;
-      node.poles(w.high_voltage_lines)->.hv_poles;
+      button.disabled = true;
+      button.innerHTML = 'Analyzing <span class="loading"></span>';
+      resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
       
-      (
-        node.towers(user:"${users.split(',').join('","')}");
-        node.hv_poles(user:"${users.split(',').join('","')}");
-      )->.my_nodes;
-      
-      way["power"="line"](bn.my_nodes)->.connected_ways;
-      
-      (
-        .my_nodes;
-        .connected_ways;
-      );
-      out body;
-      >;
-      out skel qt;
-    `;
-    
-    const data = await fetchOverpassData(query);
-    const voltageData = processTowerData(data);
-    displayTowerResults(voltageData, resultsDiv);
-  } catch (error) {
-    resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-    console.error('Tower analysis error:', error);
-  } finally {
-    button.disabled = false;
-    button.textContent = 'Analyze Towers';
-  }
-});
+      try {
+        const userFilter = users.map(u => `"${u}"`).join(',');
+        const query = `
+          [out:json][timeout:400]; 
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          node["power"="tower"](area.searchArea) -> .towers;
+          node["power"="pole"](area.searchArea) -> .poles;
+          way["power"="line"](area.searchArea)(bn.towers) -> .lines_connected;
+          way["power"="line"]["voltage"](if:t["voltage"] >= 90000)(area.searchArea) -> .high_voltage_lines;
+          node.poles(w.high_voltage_lines) -> .hv_poles;
+          
+          (
+            node.towers(user:${userFilter});
+            node.hv_poles(user:${userFilter});
+          ) -> .my_nodes;
+          
+          way["power"="line"](bn.my_nodes) -> .connected_ways;
+          
+          (
+            .my_nodes;
+            .connected_ways;
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        `;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `data=${encodeURIComponent(query)}`
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const towerVoltages = processTowerData(data);
+        displayTowerResults(towerVoltages, resultsDiv);
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        console.error('Tower analysis error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Analyze Towers';
+      }
+    });
 
+    function processTowerData(data) {
+      const towers = {};
+      const towerVoltages = {};
+      
+      // First collect all towers/poles
+      data.elements.forEach(element => {
+        if (element.type === 'node' && element.tags?.power && 
+            (element.tags.power === 'tower' || element.tags.power === 'pole')) {
+          towers[element.id] = element;
+        }
+      });
+      
+      const countedTowers = new Set();
+      
+      // Then process ways to get voltages
+      data.elements.forEach(element => {
+        if (element.type === 'way' && element.tags?.power === 'line' && element.tags.voltage) {
+          const voltage = processVoltage(element.tags.voltage);
+          element.nodes.forEach(nodeId => {
+            if (towers[nodeId] && !countedTowers.has(nodeId)) {
+              const voltageKey = `${voltage} kV`;
+              towerVoltages[voltageKey] = (towerVoltages[voltageKey] || 0) + 1;
+              countedTowers.add(nodeId);
+            }
+          });
+        }
+      });
+      
+      return {
+        voltageCounts: towerVoltages,
+        totalTowers: Object.keys(towers).length
+      };
+    }
 
-    // Substation Analysis (unchanged)
+    function processVoltage(voltageStr) {
+      const voltage = String(voltageStr).trim();
+      if (voltage.includes('/')) {
+        const parts = voltage.split('/').map(Number);
+        return Math.max(...parts) / 1000; // Take the largest and convert to kV
+      }
+      return Number(voltage) / 1000; // Convert to kV
+    }
+
+    function displayTowerResults(data, container) {
+      const voltageCounts = data.voltageCounts;
+      const totalTowers = data.totalTowers;
+      
+      if (Object.keys(voltageCounts).length === 0) {
+        container.innerHTML = '<p>No towers/poles found with voltage information.</p>';
+        return;
+      }
+      
+      // Convert to array and sort by voltage
+      const sortedResults = Object.entries(voltageCounts)
+        .map(([voltage, count]) => ({ 
+          voltage: parseFloat(voltage), 
+          count 
+        }))
+        .sort((a, b) => a.voltage - b.voltage);
+      
+      let html = '<h3>Voltage Distribution of Towers and HV Poles</h3>';
+      html += `<p>Total towers and poles: ${totalTowers}</p>`;
+      html += '<table><tr><th>Voltage (kV)</th><th>Number of Towers/Poles</th></tr>';
+      
+      sortedResults.forEach(({ voltage, count }) => {
+        html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
+      });
+      
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    // Substation Analysis - Exact implementation of Python script
     document.getElementById('substationForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const country = document.getElementById('substationCountry').value.trim();
-      const users = document.getElementById('substationUsers').value.trim();
+      const usersInput = document.getElementById('substationUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
       const button = document.getElementById('substationSubmit');
       const resultsDiv = document.getElementById('substationResults');
       
@@ -320,8 +382,36 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       resultsDiv.innerHTML = '<p>Fetching substation data from OSM...</p>';
       
       try {
-        const query = buildSubstationQuery(country, users);
-        const data = await fetchOverpassData(query);
+        const userFilter = users.map(u => `"${u}"`).join(',');
+        const query = `
+          [out:json][timeout:400]; 
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          (
+            node["power"="substation"](area.searchArea)(user:${userFilter});
+            way["power"="substation"](area.searchArea)(user:${userFilter});
+            relation["power"="substation"](area.searchArea)(user:${userFilter});
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        `;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `data=${encodeURIComponent(query)}`
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching data: ${response.status}`);
+        }
+        
+        const data = await response.json();
         const voltageData = processSubstationData(data);
         displaySubstationResults(voltageData, resultsDiv);
       } catch (error) {
@@ -333,256 +423,19 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       }
     });
 
-    // Line Length Analysis (simplified)
-    document.getElementById('lineForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const country = document.getElementById('lineCountry').value.trim();
-      const users = document.getElementById('lineUsers').value.trim();
-      const button = document.getElementById('lineSubmit');
-      const resultsDiv = document.getElementById('lineResults');
-      
-      button.disabled = true;
-      button.innerHTML = 'Calculating <span class="loading"></span>';
-      resultsDiv.innerHTML = '<p>Calculating power line lengths...</p>';
-      
-      try {
-        const query = `
-          [out:json][timeout:90];
-          relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
-          .admin_boundary map_to_area ->.searchArea;
-          
-          (
-            way["power"="line"](area.searchArea)(user:"${users.split(',').join('","')}");
-          );
-          out body;
-          >;
-          out skel qt;
-        `;
-        const data = await fetchOverpassData(query);
-        const lineData = processLineLengthData(data);
-        displayLineLengthResults(lineData, resultsDiv);
-      } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        console.error('Line length analysis error:', error);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Calculate Line Lengths';
-      }
-    });
-
-    // Generation Capacity Analysis (simplified)
-    document.getElementById('capacityForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const country = document.getElementById('capacityCountry').value.trim();
-      const users = document.getElementById('capacityUsers').value.trim();
-      const button = document.getElementById('capacitySubmit');
-      const resultsDiv = document.getElementById('capacityResults');
-      
-      button.disabled = true;
-      button.innerHTML = 'Calculating <span class="loading"></span>';
-      resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
-      
-      try {
-        const query = `
-          [out:json][timeout:90];
-          relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
-          .admin_boundary map_to_area ->.searchArea;
-          
-          (
-            node["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
-            way["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
-            relation["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
-          );
-          out body;
-          >;
-          out skel qt;
-        `;
-        const data = await fetchOverpassData(query);
-        const capacityData = processCapacityData(data);
-        displayCapacityResults(capacityData, resultsDiv);
-      } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        console.error('Capacity analysis error:', error);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Calculate Capacity';
-      }
-    });
-
-    // Query Builders
-    function buildSubstationQuery(country, users) {
-      const userFilter = users ? `(user:"${users.split(',').join('","')}")` : '';
-      return `
-        [out:json][timeout:90];
-        relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
-        .admin_boundary map_to_area ->.searchArea;
-        
-        (
-          node["power"="substation"]${userFilter}(area.searchArea);
-          way["power"="substation"]${userFilter}(area.searchArea);
-          relation["power"="substation"]${userFilter}(area.searchArea);
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-    }
-
-    // Data Fetching
-    async function fetchOverpassData(query) {
-      const response = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `data=${encodeURIComponent(query)}`
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Overpass API error: ${response.statusText}`);
-      }
-      
-      return await response.json();
-    }
-
- // Data processing
-function processTowerData(data) {
-  const voltageCounts = {};
-  const towers = {};
-  
-  // First collect all towers/poles
-  data.elements.forEach(element => {
-    if (element.type === 'node' && element.tags?.power && 
-        (element.tags.power === 'tower' || element.tags.power === 'pole')) {
-      towers[element.id] = element;
-    }
-  });
-  
-  const countedTowers = new Set();
-  
-  // Then process ways to get voltages
-  data.elements.forEach(element => {
-    if (element.type === 'way' && element.tags?.power === 'line' && element.tags.voltage) {
-      const voltage = processVoltage(element.tags.voltage);
-      element.nodes.forEach(nodeId => {
-        if (towers[nodeId] && !countedTowers.has(nodeId)) {
-          const voltageKey = `${voltage} kV`;
-          voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
-          countedTowers.add(nodeId);
-        }
-      });
-    }
-  });
-  
-  return {
-    voltageCounts: voltageCounts,
-    totalTowers: Object.keys(towers).length
-  };
-}
-    
-  function processSubstationData(data) {
- 
+    function processSubstationData(data) {
       const voltageCounts = {};
- 
-
- 
+      
       data.elements.forEach(element => {
- 
         if (element.tags && element.tags.voltage) {
- 
           const voltage = processVoltage(element.tags.voltage);
- 
           const voltageKey = `${voltage} kV`;
- 
           voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
- 
         }
- 
       });
- 
-
- 
+      
       return voltageCounts;
- 
     }
-
-    function processLineLengthData(data) {
-      let totalLength = 0;
-      let lineCount = 0;
-      
-      data.elements.forEach(element => {
-        if (element.type === 'way' && element.tags?.power === 'line') {
-          // Very rough length estimation based on node count
-          const nodeCount = element.nodes?.length || 0;
-          totalLength += nodeCount * 0.1; // Approx 100m per segment
-          lineCount++;
-        }
-      });
-      
-      return {
-        totalLength: totalLength,
-        lineCount: lineCount
-      };
-    }
-
-    function processCapacityData(data) {
-      let totalCapacity = 0;
-      let plantCount = 0;
-      
-      data.elements.forEach(element => {
-        if (element.tags && element.tags.power === 'generator' && element.tags.capacity) {
-          const capacity = parseFloat(element.tags.capacity);
-          if (!isNaN(capacity)) {
-            totalCapacity += capacity;
-            plantCount++;
-          }
-        }
-      });
-      
-      return {
-        totalCapacity: totalCapacity,
-        plantCount: plantCount
-      };
-    }
-
-    function processVoltage(voltageStr) {
-      const voltage = String(voltageStr).trim();
-      if (voltage.includes('/')) {
-        const parts = voltage.split('/').map(Number);
-        return Math.round(Math.max(...parts) / 1000);
-      }
-      return Math.round(Number(voltage) / 1000);
-    }
-
-    // Results Display Functions
-    function displayTowerResults(data, container) {
-  const voltageCounts = data.voltageCounts;
-  const totalTowers = data.totalTowers;
-  
-  if (Object.keys(voltageCounts).length === 0) {
-    container.innerHTML = '<p>No towers/poles found with voltage information.</p>';
-    return;
-  }
-  
-  // Convert to array and sort by voltage
-  const sortedResults = Object.entries(voltageCounts)
-    .map(([voltage, count]) => ({ 
-      voltage: parseFloat(voltage), 
-      count 
-    }))
-    .sort((a, b) => a.voltage - b.voltage);
-  
-  let html = '<h3>Voltage Distribution of Towers and HV Poles</h3>';
-  html += `<p>Total towers and poles: ${totalTowers}</p>`;
-  html += '<table><tr><th>Voltage (kV)</th><th>Number of Towers/Poles</th></tr>';
-  
-  sortedResults.forEach(({ voltage, count }) => {
-    html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
-  });
-  
-  html += '</table>';
-  container.innerHTML = html;
-}
 
     function displaySubstationResults(data, container) {
       if (Object.keys(data).length === 0) {
@@ -593,8 +446,8 @@ function processTowerData(data) {
       const sorted = Object.entries(data)
         .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
       
-      let html = '<h3>Substation Voltage Distribution</h3><table>';
-      html += '<tr><th>Voltage (kV)</th><th>Count</th></tr>';
+      let html = '<h3>Substation Voltage Distribution</h3>';
+      html += '<table><tr><th>Voltage (kV)</th><th>Count</th></tr>';
       
       sorted.forEach(([voltage, count]) => {
         html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
@@ -604,26 +457,104 @@ function processTowerData(data) {
       container.innerHTML = html;
     }
 
-    function displayLineLengthResults(data, container) {
-      if (data.lineCount === 0) {
-        container.innerHTML = '<p>No power lines found matching the criteria.</p>';
-        return;
-      }
+    // Generation Capacity Analysis - Exact implementation of Python script
+    document.getElementById('capacityForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const country = document.getElementById('capacityCountry').value.trim();
+      const usersInput = document.getElementById('capacityUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : ["Andreas Hernandez", "Tobias Augspurger"];
+      const totalCapacityInput = document.getElementById('totalCapacity').value.trim();
+      const button = document.getElementById('capacitySubmit');
+      const resultsDiv = document.getElementById('capacityResults');
       
-      let html = '<h3>Power Line Length Analysis</h3>';
-      html += `<p>Total length of ${data.lineCount} power lines: <strong>${data.totalLength.toFixed(1)} km</strong></p>`;
-      container.innerHTML = html;
+      button.disabled = true;
+      button.innerHTML = 'Calculating <span class="loading"></span>';
+      resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
+      
+      try {
+        const userFilter = users.map(u => `"${u}"`).join(',');
+        const query = `
+          [out:json][timeout:400];
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          (
+            node["power"="plant"](area.searchArea)(user:${userFilter});
+            way["power"="plant"](area.searchArea)(user:${userFilter});
+            relation["power"="plant"](area.searchArea)(user:${userFilter});
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        `;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `data=${encodeURIComponent(query)}`
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const totalUserCapacity = processCapacityData(data);
+        const totalCountryCapacity = convertToMW(totalCapacityInput);
+        
+        let html = `<h3>Generation Capacity Analysis</h3>`;
+        html += `<p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>`;
+        
+        if (totalCountryCapacity > 0) {
+          const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
+          html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity.</p>`;
+        } else if (totalCapacityInput) {
+          html += `<p class="error">Invalid total capacity input: ${totalCapacityInput}</p>`;
+        }
+        
+        resultsDiv.innerHTML = html;
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        console.error('Capacity analysis error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Calculate Capacity';
+      }
+    });
+
+    function processCapacityData(data) {
+      let totalCapacity = 0;
+      if (data.elements) {
+        for (const element of data.elements) {
+          if (element.tags && element.tags["plant:output:electricity"]) {
+            totalCapacity += convertToMW(element.tags["plant:output:electricity"]);
+          }
+        }
+      }
+      return totalCapacity;
     }
 
-    function displayCapacityResults(data, container) {
-      if (data.plantCount === 0) {
-        container.innerHTML = '<p>No power generation plants found matching the criteria.</p>';
-        return;
-      }
+    function convertToMW(value) {
+      if (!value) return 0;
       
-      let html = '<h3>Generation Capacity Analysis</h3>';
-      html += `<p>Total capacity of ${data.plantCount} plants: <strong>${data.totalCapacity.toFixed(2)} MW</strong></p>`;
-      container.innerHTML = html;
+      const str = String(value).trim().toLowerCase();
+      const match = str.match(/(\d+(?:\.\d+)?)([a-z]*)/);
+      
+      if (match) {
+        const num = parseFloat(match[1]);
+        const unit = match[2];
+        
+        if (unit.includes('kw')) {
+          return num / 1000;
+        } else if (unit.includes('gw')) {
+          return num * 1000;
+        }
+        return num; // Assume MW
+      }
+      return 0;
     }
   </script>
 </body>
