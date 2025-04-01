@@ -167,8 +167,8 @@
     function buildSubstationQuery(country, users) {
       const userFilter = users ? `(user:"${users.split(',').join('","')}")` : '';
       return `
-        [out:json][timeout:25];
-        relation["boundary"="administrative"]["name:en"~"^${country}",i]->.admin_boundary;
+        [out:json][timeout:50];
+        relation["boundary"="administrative"][~"^name(:en)?$"~"^{country}.*", i]->.admin_boundary;
         .admin_boundary map_to_area ->.searchArea;
         
         (
@@ -186,7 +186,7 @@
       const userFilter = users ? `(user:"${users.split(',').join('","')}")` : '';
       return `
         [out:json][timeout:25];
-        relation["boundary"="administrative"]["name:en"~"^${country}",i]->.admin_boundary;
+        relation["boundary"="administrative"][~"^name(:en)?$"~"^{country}.*", i]->.admin_boundary;
         .admin_boundary map_to_area ->.searchArea;
         
         (
