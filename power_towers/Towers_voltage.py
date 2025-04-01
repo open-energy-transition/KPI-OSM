@@ -1,20 +1,13 @@
 import requests
- 
 import pandas as pd
- 
 import re
- 
 from collections import defaultdict
- 
-
  
 # ---------------------- Configuration ---------------------- #
  
 DEFAULT_COUNTRY = "Bolivia"  # Change this to your desired country
  
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
- 
-
  
 # ---------------------- Overpass Query ---------------------- #
  
@@ -23,67 +16,37 @@ def get_overpass_query(country, users):
     user_filter = "\",\"".join(users)  # Format for user_touched filter
  
     return f"""
- 
-    [out:json][timeout:400];
- 
-    
- 
+    [out:json][timeout:400]; 
     relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i] -> .admin_boundary;
- 
     .admin_boundary map_to_area -> .searchArea;
  
-    
- 
     node["power"="tower"](area.searchArea) -> .towers;
- 
     node["power"="pole"](area.searchArea) -> .poles;
- 
     way["power"="line"](area.searchArea)(bn.towers) -> .lines_connected;
- 
     way["power"="line"]["voltage"](if:t["voltage"] >= 90000)(area.searchArea) -> .high_voltage_lines;
- 
     node.poles(w.high_voltage_lines) -> .hv_poles;
  
-    
- 
     (
- 
       node.towers(user_touched:"{user_filter}");
- 
       node.hv_poles(user_touched:"{user_filter}");
- 
     ) -> .my_nodes;
- 
-    
- 
+  
     way["power"="line"](bn.my_nodes) -> .connected_ways;
  
-    
- 
     (
- 
       .my_nodes;
- 
       .connected_ways;
- 
     );
  
-    
- 
     out body;
- 
     >;
- 
     out skel qt;
  
     """
- 
-
- 
 # ---------------------- Fetch Data ---------------------- #
  
 def fetch_osm_data(country, users):
- 
+
     query = get_overpass_query(country, users)
  
     response = requests.get(OVERPASS_URL, params={"data": query})
@@ -98,7 +61,6 @@ def fetch_osm_data(country, users):
  
         return None
  
-
  
 # ---------------------- Process Data ---------------------- #
  
@@ -107,9 +69,7 @@ def process_osm_data(data):
     towers = {}
  
     tower_voltages = defaultdict(int)
- 
 
- 
     for element in data.get("elements", []):
  
         if element["type"] == "node" and "power" in element.get("tags", {}):
@@ -148,11 +108,9 @@ def process_osm_data(data):
  
                         counted_towers.add(node_id)  # Mark this tower/pole as counted
  
-
  
     return tower_voltages
  
-
  
 # ---------------------- Process Voltage ---------------------- #
  
@@ -184,13 +142,10 @@ def display_results(tower_voltages):
  
     print(df.to_string(index=False))
  
-
  
 # ---------------------- Main Execution ---------------------- #
  
 if __name__ == "__main__":
- 
- 
 
     country = input(f"Enter the country name (Example: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
  
@@ -198,7 +153,6 @@ if __name__ == "__main__":
  
     users = [user.strip() for user in users.split(",")] if users else []
  
-
  
     print("Fetching data from OSM...")
  
