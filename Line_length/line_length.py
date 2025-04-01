@@ -130,7 +130,7 @@ def display_results(total_length, voltage_lengths):
 # ---------------------- Main Execution ---------------------- #
 if __name__ == "__main__":
     country = input(f"Enter the country name (example: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
-    users = input("Enter OSM usernames separated by commas: ").strip()
+    users = input("Enter OSM username(s) separated by commas if multiple: ").strip()
     users = [user.strip() for user in users.split(",")] if users else []
     
     print("Fetching data from OSM...")
