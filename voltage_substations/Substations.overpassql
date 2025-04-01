@@ -1,15 +1,17 @@
 [out:json][timeout:400];
 
-node["power"="substation"](user_touched:"Andreas Hernandez")-> .substation_nodes;
-way["power"="substation"](user_touched:"Andreas Hernandez") -> .substation_ways;
-relation["power"="substation"](user_touched:"Andreas Hernandez")-> .substation_relations;
+relation["boundary"="administrative"]
+  [~"^name(:en)?$"~"Mozambique", i] -> .admin_boundary;
+.admin_boundary map_to_area -> .searchArea;
 
-// Combine all relevant results
+node["power"="substation"](area.searchArea) -> .substation_nodes;
+way["power"="substation"](area.searchArea) -> .substation_ways;
+relation["power"="substation"](area.searchArea) -> .substation_relations;
+
 (
-  .substation_nodes;
-  .substation_ways;
-  .substation_relations;
-
+  node.substation_nodes(user_touched:"Andreas Hernandez");
+  way.substation_ways(user_touched:"Andreas Hernandez");
+  relation.substation_relations(user_touched:"Andreas Hernandez");
 );
 
 out body;
