@@ -479,6 +479,32 @@ function processTowerData(data) {
     totalTowers: Object.keys(towers).length
   };
 }
+    
+  function processSubstationData(data) {
+ 
+      const voltageCounts = {};
+ 
+
+ 
+      data.elements.forEach(element => {
+ 
+        if (element.tags && element.tags.voltage) {
+ 
+          const voltage = processVoltage(element.tags.voltage);
+ 
+          const voltageKey = `${voltage} kV`;
+ 
+          voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
+ 
+        }
+ 
+      });
+ 
+
+ 
+      return voltageCounts;
+ 
+    }
 
     function processLineLengthData(data) {
       let totalLength = 0;
