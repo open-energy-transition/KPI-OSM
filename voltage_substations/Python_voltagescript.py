@@ -3,7 +3,7 @@ import pandas as pd
 from collections import defaultdict
 
 # ---------------------- Configuration ---------------------- #
-DEFAULT_COUNTRY = "Bolivia"  # Change this to your desired country
+DEFAULT_COUNTRY = "Nepal"  # Change this to your desired country
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 # ---------------------- Overpass Query ---------------------- #
@@ -12,7 +12,7 @@ def get_overpass_query(country, users):
     return f"""
     [out:json][timeout:400];
     
-    relation["boundary"="administrative"][~"^name(:en)?$"~"^{country}.*", i] -> .admin_boundary;
+    relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i] -> .admin_boundary;
     .admin_boundary map_to_area -> .searchArea;
     
     node["power"="substation"](area.searchArea) -> .substation_nodes;
@@ -84,7 +84,7 @@ def display_results(substation_voltages):
 
 # ---------------------- Main Execution ---------------------- #
 if __name__ == "__main__":
-    country = input(f"Enter the country name (default: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
+    country = input(f"Enter the country name (Example: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
     users = input("Enter OSM usernames separated by commas: ").strip()
     users = [user.strip() for user in users.split(",")] if users else []
     
