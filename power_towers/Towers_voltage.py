@@ -13,7 +13,7 @@ def get_overpass_query(country, users):
     return f"""
     [out:json][timeout:400];
     
-    relation["boundary"="administrative"]["name:en"~"^{country}.*", i] -> .admin_boundary;
+    relation["boundary"="administrative"][~"^name(:en)?$"~"^{country}.*", i] -> .admin_boundary;
     .admin_boundary map_to_area -> .searchArea;
     
     node["power"="tower"](area.searchArea) -> .towers;
