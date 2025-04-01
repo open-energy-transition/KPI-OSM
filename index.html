@@ -279,8 +279,8 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       node.poles(w.high_voltage_lines)->.hv_poles;
       
       (
-        node.towers(user:"${users.split(',').join('","')}");
-        node.hv_poles(user:"${users.split(',').join('","')}");
+        node.towers(user_touched:"${users.split(',').join('","')}");
+        node.hv_poles(user_touched:"${users.split(',').join('","')}");
       )->.my_nodes;
       
       way["power"="line"](bn.my_nodes)->.connected_ways;
@@ -326,9 +326,9 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       .admin_boundary map_to_area ->.searchArea;
       
       (
-        node["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
-        way["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
-        relation["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
+        node["power"="substation"](user_touched:"${users.split(',').join('","')}")(area.searchArea);
+        way["power"="substation"](user_touched:"${users.split(',').join('","')}")(area.searchArea);
+        relation["power"="substation"](user_touched:"${users.split(',').join('","')}")(area.searchArea);
       );
       out body;
       >;
@@ -366,7 +366,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
           .admin_boundary map_to_area ->.searchArea;
           
           (
-            way["power"="line"](area.searchArea)(user:"${users.split(',').join('","')}");
+            way["power"="line"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
           );
           out body;
           >;
@@ -403,9 +403,9 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
           .admin_boundary map_to_area ->.searchArea;
           
           (
-            node["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
-            way["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
-            relation["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+            node["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
+            way["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
+            relation["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
           );
           out body;
           >;
@@ -424,7 +424,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
     });
 
     // Query Builders
-    function buildSubstationQuery(country, users) {
+    function buildSubstationQuery(country, s) {
       const userFilter = users ? `(user:"${users.split(',').join('","')}")` : '';
       return `
         [out:json][timeout:90];
