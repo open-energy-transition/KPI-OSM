@@ -1,5 +1,6 @@
 # KPI-OSM
-This repository contains scripts (Python and Overpass) to measure your mapping progress.
+This repository includes individual scripts but also a web interface to see your progress here: https://open-energy-transition.github.io/KPI-OSM/
+The web interface only includes 3 kpi tools for now.
 
 ## 🔄 Before and after script
 This script gives you a good visualisation of the mapping activities users have made. 
