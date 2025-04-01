@@ -263,8 +263,8 @@
           node.poles(w.high_voltage_lines) -> .hv_poles;
           
           (
-            node.towers(user:${userFilter});
-            node.hv_poles(user:${userFilter});
+            node.towers(user_touched:${userFilter});
+            node.hv_poles(user_touched:${userFilter});
           ) -> .my_nodes;
           
           way["power"="line"](bn.my_nodes) -> .connected_ways;
@@ -396,9 +396,9 @@
           .admin_boundary map_to_area -> .searchArea;
           
           (
-            node["power"="substation"](area.searchArea)(user:${userFilter});
-            way["power"="substation"](area.searchArea)(user:${userFilter});
-            relation["power"="substation"](area.searchArea)(user:${userFilter});
+            node["power"="substation"](area.searchArea)(user_touched:${userFilter});
+            way["power"="substation"](area.searchArea)(user_touched:${userFilter});
+            relation["power"="substation"](area.searchArea)(user_touched:${userFilter});
           );
           
           out body;
@@ -486,9 +486,9 @@
           .admin_boundary map_to_area -> .searchArea;
           
           (
-            node["power"="plant"](area.searchArea)(user:${userFilter});
-            way["power"="plant"](area.searchArea)(user:${userFilter});
-            relation["power"="plant"](area.searchArea)(user:${userFilter});
+            node["power"="plant"](area.searchArea)(user_touched:${userFilter});
+            way["power"="plant"](area.searchArea)(user_touched:${userFilter});
+            relation["power"="plant"](area.searchArea)(user_touched:${userFilter});
           );
           
           out body;
