@@ -64,7 +64,7 @@ def process_osm_data(data):
     return total_capacity
 
 def main():
-    country = input(f"Enter the country name (default: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
+    country = input(f"Enter the country name (Example: {DEFAULT_COUNTRY}): ") or DEFAULT_COUNTRY
     users = input(f"Enter user names separated by commas (default: {', '.join(DEFAULT_USERS)}): ")
     users = [user.strip() for user in users.split(",")] if users else DEFAULT_USERS
     
