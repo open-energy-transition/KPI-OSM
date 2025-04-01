@@ -403,9 +403,9 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
           .admin_boundary map_to_area ->.searchArea;
           
           (
-            node["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
-            way["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
-            relation["power"="generator"](area.searchArea)(user:"${users.split(',').join('","')}");
+            node["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+            way["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+            relation["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
           );
           out body;
           >;
