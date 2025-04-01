@@ -384,44 +384,46 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       }
     });
 
-    // Generation Capacity Analysis (simplified)
-    document.getElementById('capacityForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const country = document.getElementById('capacityCountry').value.trim();
-      const users = document.getElementById('capacityUsers').value.trim();
-      const button = document.getElementById('capacitySubmit');
-      const resultsDiv = document.getElementById('capacityResults');
+    // Updated Generation Capacity Analysis
+document.getElementById('capacityForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const country = document.getElementById('capacityCountry').value.trim();
+  const users = document.getElementById('capacityUsers').value.trim();
+  const button = document.getElementById('capacitySubmit');
+  const resultsDiv = document.getElementById('capacityResults');
+  
+  button.disabled = true;
+  button.innerHTML = 'Calculating <span class="loading"></span>';
+  resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
+  
+  try {
+    const query = `
+      [out:json][timeout:90];
+      relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i]->.admin_boundary;
+      .admin_boundary map_to_area ->.searchArea;
       
-      button.disabled = true;
-      button.innerHTML = 'Calculating <span class="loading"></span>';
-      resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
-      
-      try {
-        const query = `
-          [out:json][timeout:90];
-          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}",i]->.admin_boundary;
-          .admin_boundary map_to_area ->.searchArea;
-          
-          (
-            node["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
-            way["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
-            relation["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
-          );
-          out body;
-          >;
-          out skel qt;
-        `;
-        const data = await fetchOverpassData(query);
-        const capacityData = processCapacityData(data);
-        displayCapacityResults(capacityData, resultsDiv);
-      } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        console.error('Capacity analysis error:', error);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Calculate Capacity';
-      }
-    });
+      (
+        node["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+        way["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+        relation["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+    
+    const data = await fetchOverpassData(query);
+    const capacityData = processCapacityData(data);
+    displayCapacityResults(capacityData, resultsDiv);
+  } catch (error) {
+    resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    console.error('Capacity analysis error:', error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Calculate Capacity';
+  }
+});
+
 
     // Query Builders
     function buildSubstationQuery(country, s) {
@@ -528,24 +530,30 @@ function processTowerData(data) {
     }
 
     function processCapacityData(data) {
-      let totalCapacity = 0;
-      let plantCount = 0;
+  let totalCapacity = 0;
+  let plantCount = 0;
+  
+  data.elements.forEach(element => {
+    if (element.tags && element.tags.power === 'plant') {
+      // Check all possible capacity tags
+      const capacityValue = element.tags.capacity || 
+                          element.tags['generator:output'] || 
+                          element.tags['generator:capacity'] || 
+                          '0';
       
-      data.elements.forEach(element => {
-        if (element.tags && element.tags.power === 'plant' && element.tags.capacity) {
-          const capacity = parseFloat(element.tags.capacity);
-          if (!isNaN(capacity)) {
-            totalCapacity += capacity;
-            plantCount++;
-          }
-        }
-      });
-      
-      return {
-        totalCapacity: totalCapacity,
-        plantCount: plantCount
-      };
+      const capacity = parseFloat(capacityValue);
+      if (!isNaN(capacity)) {
+        totalCapacity += capacity;
+        plantCount++;
+      }
     }
+  });
+  
+  return {
+    totalCapacity: totalCapacity,
+    plantCount: plantCount
+  };
+}
 
     function processVoltage(voltageStr) {
       const voltage = String(voltageStr).trim();
@@ -618,15 +626,15 @@ function processTowerData(data) {
     }
 
     function displayCapacityResults(data, container) {
-      if (data.plantCount === 0) {
-        container.innerHTML = '<p>No power generation plants found matching the criteria.</p>';
-        return;
-      }
-      
-      let html = '<h3>Generation Capacity Analysis</h3>';
-      html += `<p>Total capacity of ${data.plantCount} plants: <strong>${data.totalCapacity.toFixed(2)} MW</strong></p>`;
-      container.innerHTML = html;
-    }
+  if (data.plantCount === 0) {
+    container.innerHTML = '<p>No power plants found matching the criteria.</p>';
+    return;
+  }
+  
+  let html = '<h3>Generation Capacity Analysis</h3>';
+  html += `<p>Total capacity of ${data.plantCount} power plants: <strong>${data.totalCapacity.toFixed(2)} MW</strong></p>`;
+  container.innerHTML = html;
+}
   </script>
 </body>
 </html>
