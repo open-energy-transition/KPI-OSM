@@ -399,7 +399,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       try {
         const query = `
           [out:json][timeout:90];
-          relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}",i]->.admin_boundary;
           .admin_boundary map_to_area ->.searchArea;
           
           (
@@ -532,7 +532,7 @@ function processTowerData(data) {
       let plantCount = 0;
       
       data.elements.forEach(element => {
-        if (element.tags && element.tags.power === 'generator' && element.tags.capacity) {
+        if (element.tags && element.tags.power === 'plant' && element.tags.capacity) {
           const capacity = parseFloat(element.tags.capacity);
           if (!isNaN(capacity)) {
             totalCapacity += capacity;
