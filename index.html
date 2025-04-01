@@ -322,7 +322,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
   try {
     const query = `
       [out:json][timeout:90];
-      relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
+      relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i]->.admin_boundary;
       .admin_boundary map_to_area ->.searchArea;
       
       (
@@ -362,7 +362,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       try {
         const query = `
           [out:json][timeout:90];
-          relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
+          relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i]->.admin_boundary;
           .admin_boundary map_to_area ->.searchArea;
           
           (
@@ -384,7 +384,7 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
       }
     });
 
-    // Updated Generation Capacity Analysis
+    //  Generation Capacity Analysis
 document.getElementById('capacityForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const country = document.getElementById('capacityCountry').value.trim();
@@ -403,9 +403,9 @@ document.getElementById('capacityForm').addEventListener('submit', async functio
       .admin_boundary map_to_area ->.searchArea;
       
       (
-        node["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
-        way["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
-        relation["power"="plant"](area.searchArea)(user:"${users.split(',').join('","')}");
+        node["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
+        way["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
+        relation["power"="plant"](area.searchArea)(user_touched:"${users.split(',').join('","')}");
       );
       out body;
       >;
@@ -430,7 +430,7 @@ document.getElementById('capacityForm').addEventListener('submit', async functio
       const userFilter = users ? `(user:"${users.split(',').join('","')}")` : '';
       return `
         [out:json][timeout:90];
-        relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
+        relation["boundary"="administrative"][~"^name(:en)?$"~"{country}", i]->.admin_boundary;
         .admin_boundary map_to_area ->.searchArea;
         
         (
