@@ -307,33 +307,47 @@ document.getElementById('towerForm').addEventListener('submit', async function(e
 });
 
 
-    // Substation Analysis (unchanged)
+    // Substation Analysis 
     document.getElementById('substationForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const country = document.getElementById('substationCountry').value.trim();
-      const users = document.getElementById('substationUsers').value.trim();
-      const button = document.getElementById('substationSubmit');
-      const resultsDiv = document.getElementById('substationResults');
+  e.preventDefault();
+  const country = document.getElementById('substationCountry').value.trim();
+  const users = document.getElementById('substationUsers').value.trim();
+  const button = document.getElementById('substationSubmit');
+  const resultsDiv = document.getElementById('substationResults');
+  
+  button.disabled = true;
+  button.innerHTML = 'Analyzing <span class="loading"></span>';
+  resultsDiv.innerHTML = '<p>Fetching substation data from OSM...</p>';
+  
+  try {
+    const query = `
+      [out:json][timeout:90];
+      relation["boundary"="administrative"][~"name|name:en"~"^${country}",i]->.admin_boundary;
+      .admin_boundary map_to_area ->.searchArea;
       
-      button.disabled = true;
-      button.innerHTML = 'Analyzing <span class="loading"></span>';
-      resultsDiv.innerHTML = '<p>Fetching substation data from OSM...</p>';
-      
-      try {
-        const query = buildSubstationQuery(country, users);
-        const data = await fetchOverpassData(query);
-        const voltageData = processSubstationData(data);
-        displaySubstationResults(voltageData, resultsDiv);
-      } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        console.error('Substation analysis error:', error);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Analyze Substations';
-      }
-    });
+      (
+        node["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
+        way["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
+        relation["power"="substation"](user:"${users.split(',').join('","')}")(area.searchArea);
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+    
+    const data = await fetchOverpassData(query);
+    const voltageData = processSubstationData(data);
+    displaySubstationResults(voltageData, resultsDiv);
+  } catch (error) {
+    resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    console.error('Substation analysis error:', error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Analyze Substations';
+  }
+});
 
-    // Line Length Analysis (simplified)
+    // Line Length Analysis 
     document.getElementById('lineForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const country = document.getElementById('lineCountry').value.trim();
@@ -480,31 +494,19 @@ function processTowerData(data) {
   };
 }
     
-  function processSubstationData(data) {
- 
-      const voltageCounts = {};
- 
-
- 
-      data.elements.forEach(element => {
- 
-        if (element.tags && element.tags.voltage) {
- 
-          const voltage = processVoltage(element.tags.voltage);
- 
-          const voltageKey = `${voltage} kV`;
- 
-          voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
- 
-        }
- 
-      });
- 
-
- 
-      return voltageCounts;
- 
+ function processSubstationData(data) {
+  const voltageCounts = {};
+  
+  data.elements.forEach(element => {
+    if (element.tags && element.tags.voltage) {
+      const voltage = processVoltage(element.tags.voltage);
+      const voltageKey = `${voltage} kV`;
+      voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
     }
+  });
+  
+  return voltageCounts;
+}
 
     function processLineLengthData(data) {
       let totalLength = 0;
@@ -584,25 +586,25 @@ function processTowerData(data) {
   container.innerHTML = html;
 }
 
-    function displaySubstationResults(data, container) {
-      if (Object.keys(data).length === 0) {
-        container.innerHTML = '<p>No substations found with voltage information.</p>';
-        return;
-      }
-      
-      const sorted = Object.entries(data)
-        .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
-      
-      let html = '<h3>Substation Voltage Distribution</h3><table>';
-      html += '<tr><th>Voltage (kV)</th><th>Count</th></tr>';
-      
-      sorted.forEach(([voltage, count]) => {
-        html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
-      });
-      
-      html += '</table>';
-      container.innerHTML = html;
-    }
+   function displaySubstationResults(data, container) {
+  if (Object.keys(data).length === 0) {
+    container.innerHTML = '<p>No substations found with voltage information.</p>';
+    return;
+  }
+  
+  const sorted = Object.entries(data)
+    .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+  
+  let html = '<h3>Substation Voltage Distribution</h3>';
+  html += '<table><tr><th>Voltage (kV)</th><th>Count</th></tr>';
+  
+  sorted.forEach(([voltage, count]) => {
+    html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
+  });
+  
+  html += '</table>';
+  container.innerHTML = html;
+}
 
     function displayLineLengthResults(data, container) {
       if (data.lineCount === 0) {
