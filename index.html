@@ -273,93 +273,142 @@
       return R * c;
     }    
 
-    // Power Line Length Analysis Tool
-    document.getElementById('linelengthForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const country = document.getElementById('linelengthCountry').value.trim();
-      const username = document.getElementById('linelengthUser').value.trim();
-      const button = document.getElementById('linelengthSubmit');
-      const resultsDiv = document.getElementById('linelengthResults');
-      
-      button.disabled = true;
-      button.innerHTML = 'Calculating <span class="loading"></span>';
-      resultsDiv.innerHTML = '<p>Fetching power line data from OSM...</p>';
-      
-      try {
-        const query = `
-          [out:json][timeout:400];
+    // Power Line Length Analysis Tool with Voltage Distribution
+document.getElementById('linelengthForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const country = document.getElementById('linelengthCountry').value.trim();
+  const username = document.getElementById('linelengthUser').value.trim();
+  const button = document.getElementById('linelengthSubmit');
+  const resultsDiv = document.getElementById('linelengthResults');
+  
+  button.disabled = true;
+  button.innerHTML = 'Calculating <span class="loading"></span>';
+  resultsDiv.innerHTML = '<p>Fetching power line data from OSM...</p>';
+  
+  try {
+    const query = `
+      [out:json][timeout:400];
 
-          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
-          .admin_boundary map_to_area -> .searchArea;
+      relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+      .admin_boundary map_to_area -> .searchArea;
 
-          way["power"="line"](area.searchArea) -> .lines;
-          way["power"="cable"](area.searchArea) -> .cables;
+      way["power"="line"](area.searchArea) -> .lines;
+      way["power"="cable"](area.searchArea) -> .cables;
 
-          (
-            way.lines(user_touched:"${username}");
-            way.cables(user_touched:"${username}");
-          );
+      (
+        way.lines(user_touched:"${username}");
+        way.cables(user_touched:"${username}");
+      );
 
-          out body;
-          >;
-          out skel qt;
-        `;
-        
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `data=${encodeURIComponent(query)}`
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const nodes = {};
-        let totalLength = 0.0;
-        
-        // Collect all node coordinates
-        data.elements.forEach(element => {
-          if (element.type === "node") {
-            nodes[element.id] = [element.lat, element.lon];
-          }
-        });
-
-        // Calculate total length
-        data.elements.forEach(element => {
-          if (element.type === "way") {
-            const wayNodes = element.nodes || [];
-            let wayLength = 0.0;
-            
-            for (let i = 0; i < wayNodes.length - 1; i++) {
-              const node1 = wayNodes[i];
-              const node2 = wayNodes[i + 1];
-              
-              if (nodes[node1] && nodes[node2]) {
-                wayLength += haversineDistance(nodes[node1], nodes[node2]);
-              }
-            }
-            
-            totalLength += wayLength;
-          }
-        });
-
-        resultsDiv.innerHTML = `
-          <h3>Power Line Length Analysis</h3>
-          <p>Total length of power lines and cables mapped by ${username} in ${country}:</p>
-          <p><strong>${totalLength.toFixed(2)} km</strong></p>
-        `;
-      } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        console.error('Power line length analysis error:', error);
-      } finally {
-        button.disabled = false;
-        button.textContent = 'Calculate Line Length';
+      out body;
+      >;
+      out skel qt;
+    `;
+    
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `data=${encodeURIComponent(query)}`
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const nodes = {};
+    let totalLength = 0.0;
+    
+    // Object to store length by voltage
+    const voltageDistribution = {};
+    
+    // Collect all node coordinates
+    data.elements.forEach(element => {
+      if (element.type === "node") {
+        nodes[element.id] = [element.lat, element.lon];
       }
     });
+
+    // Calculate total length and track by voltage
+    data.elements.forEach(element => {
+      if (element.type === "way") {
+        const wayNodes = element.nodes || [];
+        let wayLength = 0.0;
+        
+        for (let i = 0; i < wayNodes.length - 1; i++) {
+          const node1 = wayNodes[i];
+          const node2 = wayNodes[i + 1];
+          
+          if (nodes[node1] && nodes[node2]) {
+            wayLength += haversineDistance(nodes[node1], nodes[node2]);
+          }
+        }
+        
+        totalLength += wayLength;
+        
+        // Process voltage if available
+        if (element.tags && element.tags.voltage) {
+          const voltage = processVoltage(element.tags.voltage);
+          const voltageKey = `${voltage} kV`;
+          voltageDistribution[voltageKey] = (voltageDistribution[voltageKey] || 0) + wayLength;
+        } else {
+          // Track lines with no voltage data
+          voltageDistribution["Unknown"] = (voltageDistribution["Unknown"] || 0) + wayLength;
+        }
+      }
+    });
+
+    // Display results with voltage distribution
+    let html = `
+      <h3>Power Line Length Analysis</h3>
+      <p>Total length of power lines and cables mapped by ${username} in ${country}:</p>
+      <p><strong>${totalLength.toFixed(2)} km</strong></p>`;
+    
+    // If we have voltage distribution data, add a table
+    if (Object.keys(voltageDistribution).length > 0) {
+      // Convert to array and sort by voltage (numerically)
+      const sortedVoltageData = Object.entries(voltageDistribution)
+        .map(([voltage, length]) => ({
+          voltage: voltage === "Unknown" ? "Unknown" : voltage,
+          length: length
+        }))
+        .sort((a, b) => {
+          if (a.voltage === "Unknown") return 1;
+          if (b.voltage === "Unknown") return -1;
+          return parseFloat(a.voltage) - parseFloat(b.voltage);
+        });
+      
+      html += `<h4>Voltage Distribution</h4>
+               <table>
+                 <tr>
+                   <th>Voltage</th>
+                   <th>Length (km)</th>
+                   <th>Percentage</th>
+                 </tr>`;
+      
+      sortedVoltageData.forEach(item => {
+        const percentage = (item.length / totalLength * 100).toFixed(1);
+        html += `<tr>
+                  <td>${item.voltage}</td>
+                  <td>${item.length.toFixed(2)}</td>
+                  <td>${percentage}%</td>
+                </tr>`;
+      });
+      
+      html += '</table>';
+    }
+    
+    resultsDiv.innerHTML = html;
+  } catch (error) {
+    resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    console.error('Power line length analysis error:', error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Calculate Line Length';
+  }
+});
     
     // Tower Analysis 
     document.getElementById('towerForm').addEventListener('submit', async function(e) {
