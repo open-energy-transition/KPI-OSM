@@ -375,7 +375,8 @@
       resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
       
       try {
-        const userFilter = users.map(u => `"${u}"`).join(',');
+        const userFilter = users.length > 0 ? users.map(u => `"${u}"`).join(',') : "";
+        
         const query = `
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
@@ -458,17 +459,17 @@
       
       return {
         voltageCounts: towerVoltages,
-        totalTowers: Object.keys(towers).length
+        totalTowers: countedTowers.size // Fixed: use countedTowers.size instead of Object.keys(towers).length
       };
     }
 
     function processVoltage(voltageStr) {
       const voltage = String(voltageStr).trim();
       if (voltage.includes('/')) {
-        const parts = voltage.split('/').map(Number);
+        const parts = voltage.split('/').map(part => parseFloat(part) || 0);
         return Math.max(...parts) / 1000; // Take the largest and convert to kV
       }
-      return Number(voltage) / 1000; // Convert to kV
+      return parseFloat(voltage) / 1000 || 0; // Convert to kV with fallback
     }
 
     function displayTowerResults(data, container) {
@@ -575,6 +576,7 @@
         return;
       }
       
+      // Fixed: Proper parsing of voltage values for sorting
       const sorted = Object.entries(data)
         .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
       
@@ -641,7 +643,7 @@
         html += `<p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>`;
         
         if (totalCountryCapacity > 0) {
-          // Fixed percentage calculation - was previously multiplying by 100 twice
+          // Fixed: Correct percentage calculation
           const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
           html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>`;
         } else if (totalCapacityInput) {
