@@ -261,29 +261,30 @@
     });
 
     // === UTM Conversion Functions for Line Length Analysis ===
-    // Define projections: WGS84 and your local UTM zone
     const wgs84 = 'EPSG:4326';
-    const utmZone33N = 'EPSG:32633'; // Replace with your appropriate UTM zone
+    let currentUTMZone = null; // will be set dynamically
+    let useUTM = false; // flag to decide whether to use UTM-based calculations
 
-    // Convert coordinate from WGS84 to UTM using Proj4js. Note: Proj4js expects [lon, lat]
+    // Convert coordinate from WGS84 to UTM using the currentUTMZone.
     function convertToUTM(lat, lon) {
-      return proj4(wgs84, utmZone33N, [lon, lat]);
+      // Proj4js expects [lon, lat]
+      return proj4(wgs84, currentUTMZone, [lon, lat]);
     }
 
-    // Calculate Euclidean distance in UTM coordinates (result in km)
+    // Calculate Euclidean distance (in km) using UTM coordinates
     function euclideanDistance(coord1, coord2) {
       const [x1, y1] = convertToUTM(coord1[0], coord1[1]);
       const [x2, y2] = convertToUTM(coord2[0], coord2[1]);
       const dx = x2 - x1;
       const dy = y2 - y1;
-      return Math.sqrt(dx * dx + dy * dy) / 1000; // Convert meters to km
+      return Math.sqrt(dx * dx + dy * dy) / 1000; // convert meters to km
     }
 
-    // Existing Haversine function (still available if needed)
+    // Existing Haversine function (WGS84-based distance calculation)
     function haversineDistance(coord1, coord2) {
       const [lat1, lon1] = coord1;
       const [lat2, lon2] = coord2;
-      const R = 6371; // Earth's radius in km
+      const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -291,9 +292,47 @@
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
-    }    
+    }
 
-    // Power Line Length Analysis Tool using UTM-based calculations
+    // --- New: Function to determine the appropriate UTM zone for a given country ---
+    // This function uses the Overpass API to fetch the admin boundary center.
+    async function getUTMZoneForCountry(country) {
+      try {
+        const query = `
+          [out:json][timeout:25];
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i];
+          out center 1;
+        `;
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `data=${encodeURIComponent(query)}`
+        });
+        if (!response.ok) {
+          throw new Error(`Error fetching admin boundary: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.elements && data.elements.length > 0 && data.elements[0].center) {
+          const center = data.elements[0].center;
+          const lon = center.lon;
+          const lat = center.lat;
+          // Calculate UTM zone number from longitude
+          const zone = Math.floor((lon + 180) / 6) + 1;
+          // Determine EPSG code based on hemisphere:
+          // Northern Hemisphere: EPSG:326XX, Southern Hemisphere: EPSG:327XX.
+          const epsgPrefix = (lat >= 0) ? 'EPSG:326' : 'EPSG:327';
+          const zoneStr = zone < 10 ? '0' + zone : zone;
+          return epsgPrefix + zoneStr;
+        } else {
+          throw new Error("No admin boundary center found.");
+        }
+      } catch (error) {
+        console.error("UTM zone determination error:", error);
+        return null;
+      }
+    }
+
+    // Power Line Length Analysis Tool using either UTM-based or WGS84-based calculations
     document.getElementById('linelengthForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const country = document.getElementById('linelengthCountry').value.trim();
@@ -306,20 +345,28 @@
       resultsDiv.innerHTML = '<p>Fetching power line data from OSM...</p>';
       
       try {
+        // Attempt to determine the appropriate UTM zone based on the country input.
+        const utmZone = await getUTMZoneForCountry(country);
+        let methodMessage = "";
+        if (utmZone) {
+          currentUTMZone = utmZone;
+          useUTM = true;
+          methodMessage = `<p>Using local UTM zone: ${currentUTMZone}</p>`;
+        } else {
+          useUTM = false;
+          methodMessage = `<p>Falling back to WGS84 with Haversine calculation.</p>`;
+        }
+        
         const query = `
           [out:json][timeout:400];
-
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
-
           way["power"="line"](area.searchArea) -> .lines;
           way["power"="cable"](area.searchArea) -> .cables;
-
           (
             way.lines(user_touched:"${username}");
             way.cables(user_touched:"${username}");
           );
-
           out body;
           >;
           out skel qt;
@@ -327,16 +374,12 @@
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(query)}`
         });
-        
         if (!response.ok) {
           throw new Error(`Error fetching data: ${response.status}`);
         }
-        
         const data = await response.json();
         const nodes = {};
         let totalLength = 0.0;
@@ -348,26 +391,28 @@
           }
         });
 
-        // Calculate total length using UTM-based Euclidean distance
+        // Calculate total length using the chosen method
         data.elements.forEach(element => {
           if (element.type === "way") {
             const wayNodes = element.nodes || [];
             let wayLength = 0.0;
-            
             for (let i = 0; i < wayNodes.length - 1; i++) {
               const node1 = wayNodes[i];
               const node2 = wayNodes[i + 1];
-              
               if (nodes[node1] && nodes[node2]) {
-                wayLength += euclideanDistance(nodes[node1], nodes[node2]);
+                if (useUTM) {
+                  wayLength += euclideanDistance(nodes[node1], nodes[node2]);
+                } else {
+                  wayLength += haversineDistance(nodes[node1], nodes[node2]);
+                }
               }
             }
-            
             totalLength += wayLength;
           }
         });
 
         resultsDiv.innerHTML = `
+          ${methodMessage}
           <h3>Power Line Length Analysis</h3>
           <p>Total length of power lines and cables mapped by ${username} in ${country}:</p>
           <p><strong>${totalLength.toFixed(2)} km</strong></p>
@@ -400,25 +445,20 @@
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
-          
           node["power"="tower"](area.searchArea) -> .towers;
           node["power"="pole"](area.searchArea) -> .poles;
           way["power"="line"](area.searchArea)(bn.towers) -> .lines_connected;
           way["power"="line"]["voltage"](if:t["voltage"] >= 90000)(area.searchArea) -> .high_voltage_lines;
           node.poles(w.high_voltage_lines) -> .hv_poles;
-          
           (
             node.towers(user_touched:${userFilter});
             node.hv_poles(user_touched:${userFilter});
           ) -> .my_nodes;
-          
           way["power"="line"](bn.my_nodes) -> .connected_ways;
-          
           (
             .my_nodes;
             .connected_ways;
           );
-          
           out body;
           >;
           out skel qt;
@@ -426,16 +466,12 @@
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(query)}`
         });
-        
         if (!response.ok) {
           throw new Error(`Error fetching data: ${response.status}`);
         }
-        
         const data = await response.json();
         const towerVoltages = processTowerData(data);
         displayTowerResults(towerVoltages, resultsDiv);
@@ -539,13 +575,11 @@
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
-          
           (
             node["power"="substation"](area.searchArea)(user_touched:${userFilter});
             way["power"="substation"](area.searchArea)(user_touched:${userFilter});
             relation["power"="substation"](area.searchArea)(user_touched:${userFilter});
           );
-          
           out body;
           >;
           out skel qt;
@@ -553,16 +587,12 @@
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(query)}`
         });
-        
         if (!response.ok) {
           throw new Error(`Error fetching data: ${response.status}`);
         }
-        
         const data = await response.json();
         const voltageData = processSubstationData(data);
         displaySubstationResults(voltageData, resultsDiv);
@@ -629,13 +659,11 @@
           [out:json][timeout:400];
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
-          
           (
             node["power"="plant"](area.searchArea)(user_touched:${userFilter});
             way["power"="plant"](area.searchArea)(user_touched:${userFilter});
             relation["power"="plant"](area.searchArea)(user_touched:${userFilter});
           );
-          
           out body;
           >;
           out skel qt;
@@ -643,16 +671,12 @@
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(query)}`
         });
-        
         if (!response.ok) {
           throw new Error(`Error fetching data: ${response.status}`);
         }
-        
         const data = await response.json();
         const totalUserCapacity = processCapacityData(data);
         const totalCountryCapacity = convertToMW(totalCapacityInput);
@@ -661,7 +685,6 @@
         html += `<p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>`;
         
         if (totalCountryCapacity > 0) {
-          // Fixed percentage calculation - was previously multiplying by 100 twice
           const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
           html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>`;
         } else if (totalCapacityInput) {
@@ -705,7 +728,7 @@
         } else if (unit.includes('gw')) {
           return num * 1000;
         }
-        return num; // Assume MW
+        return num;
       }
       return 0;
     }
