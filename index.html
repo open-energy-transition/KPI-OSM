@@ -36,7 +36,7 @@
       overflow: hidden;
     }
     .tool-header {
-      background-color: #9370db;
+      background-color: #a2cdae;
       color: white;
       padding: 15px 20px;
       cursor: pointer;
@@ -238,7 +238,7 @@
   <script>
     // Toggle tool sections
     function toggleTool(toolId) {
-      const content = document.getElementById(`${toolId}-content`);
+      const content = document.getElementById(${toolId}-content);
       const header = content.previousElementSibling;
       const arrow = header.querySelector('span');
       
@@ -271,7 +271,7 @@
         Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
-    }
+    }    
 
     // Power Line Length Analysis Tool
     document.getElementById('linelengthForm').addEventListener('submit', async function(e) {
@@ -286,7 +286,7 @@
       resultsDiv.innerHTML = '<p>Fetching power line data from OSM...</p>';
       
       try {
-        const query = `
+        const query = 
           [out:json][timeout:400];
 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
@@ -303,18 +303,18 @@
           out body;
           >;
           out skel qt;
-        `;
+        ;
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `data=${encodeURIComponent(query)}`
+          body: data=${encodeURIComponent(query)}
         });
         
         if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
+          throw new Error(Error fetching data: ${response.status});
         }
         
         const data = await response.json();
@@ -347,23 +347,348 @@
           }
         });
 
-        resultsDiv.innerHTML = `
+        resultsDiv.innerHTML = 
           <h3>Power Line Length Analysis</h3>
           <p>Total length of power lines and cables mapped by ${username} in ${country}:</p>
           <p><strong>${totalLength.toFixed(2)} km</strong></p>
-        `;
+        ;
       } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
         console.error('Power line length analysis error:', error);
       } finally {
         button.disabled = false;
         button.textContent = 'Calculate Line Length';
       }
     });
-
-    // Rest of your existing code for other tools remains unchanged...
-    // [Keep all other tool code as-is below]
     
+    // Tower Analysis 
+    document.getElementById('towerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const country = document.getElementById('towerCountry').value.trim();
+      const usersInput = document.getElementById('towerUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
+      const button = document.getElementById('towerSubmit');
+      const resultsDiv = document.getElementById('towerResults');
+      
+      button.disabled = true;
+      button.innerHTML = 'Analyzing <span class="loading"></span>';
+      resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
+      
+      try {
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
+          [out:json][timeout:400]; 
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          node["power"="tower"](area.searchArea) -> .towers;
+          node["power"="pole"](area.searchArea) -> .poles;
+          way["power"="line"](area.searchArea)(bn.towers) -> .lines_connected;
+          way["power"="line"]["voltage"](if:t["voltage"] >= 90000)(area.searchArea) -> .high_voltage_lines;
+          node.poles(w.high_voltage_lines) -> .hv_poles;
+          
+          (
+            node.towers(user_touched:${userFilter});
+            node.hv_poles(user_touched:${userFilter});
+          ) -> .my_nodes;
+          
+          way["power"="line"](bn.my_nodes) -> .connected_ways;
+          
+          (
+            .my_nodes;
+            .connected_ways;
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        ;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: data=${encodeURIComponent(query)}
+        });
+        
+        if (!response.ok) {
+          throw new Error(Error fetching data: ${response.status});
+        }
+        
+        const data = await response.json();
+        const towerVoltages = processTowerData(data);
+        displayTowerResults(towerVoltages, resultsDiv);
+      } catch (error) {
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
+        console.error('Tower analysis error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Analyze Towers';
+      }
+    });
+
+    function processTowerData(data) {
+      const towers = {};
+      const towerVoltages = {};
+      
+      // First collect all towers/poles
+      data.elements.forEach(element => {
+        if (element.type === 'node' && element.tags?.power && 
+            (element.tags.power === 'tower' || element.tags.power === 'pole')) {
+          towers[element.id] = element;
+        }
+      });
+      
+      const countedTowers = new Set();
+      
+      // Then process ways to get voltages
+      data.elements.forEach(element => {
+        if (element.type === 'way' && element.tags?.power === 'line' && element.tags.voltage) {
+          const voltage = processVoltage(element.tags.voltage);
+          element.nodes.forEach(nodeId => {
+            if (towers[nodeId] && !countedTowers.has(nodeId)) {
+              const voltageKey = ${voltage} kV;
+              towerVoltages[voltageKey] = (towerVoltages[voltageKey] || 0) + 1;
+              countedTowers.add(nodeId);
+            }
+          });
+        }
+      });
+      
+      return {
+        voltageCounts: towerVoltages,
+        totalTowers: Object.keys(towers).length
+      };
+    }
+
+    function processVoltage(voltageStr) {
+      const voltage = String(voltageStr).trim();
+      if (voltage.includes('/')) {
+        const parts = voltage.split('/').map(Number);
+        return Math.max(...parts) / 1000; // Take the largest and convert to kV
+      }
+      return Number(voltage) / 1000; // Convert to kV
+    }
+
+    function displayTowerResults(data, container) {
+      const voltageCounts = data.voltageCounts;
+      const totalTowers = data.totalTowers;
+      
+      if (Object.keys(voltageCounts).length === 0) {
+        container.innerHTML = '<p>No towers/poles found with voltage information.</p>';
+        return;
+      }
+      
+      // Convert to array and sort by voltage
+      const sortedResults = Object.entries(voltageCounts)
+        .map(([voltage, count]) => ({ 
+          voltage: parseFloat(voltage), 
+          count 
+        }))
+        .sort((a, b) => a.voltage - b.voltage);
+      
+      let html = '<h3>Voltage Distribution of Towers and HV Poles</h3>';
+      html += <p>Total towers and poles: ${totalTowers}</p>;
+      html += '<table><tr><th>Voltage (kV)</th><th>Number of Towers/Poles</th></tr>';
+      
+      sortedResults.forEach(({ voltage, count }) => {
+        html += <tr><td>${voltage}</td><td>${count}</td></tr>;
+      });
+      
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    // Substation Analysis 
+    document.getElementById('substationForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const country = document.getElementById('substationCountry').value.trim();
+      const usersInput = document.getElementById('substationUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
+      const button = document.getElementById('substationSubmit');
+      const resultsDiv = document.getElementById('substationResults');
+      
+      button.disabled = true;
+      button.innerHTML = 'Analyzing <span class="loading"></span>';
+      resultsDiv.innerHTML = '<p>Fetching substation data from OSM...</p>';
+      
+      try {
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
+          [out:json][timeout:400]; 
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          (
+            node["power"="substation"](area.searchArea)(user_touched:${userFilter});
+            way["power"="substation"](area.searchArea)(user_touched:${userFilter});
+            relation["power"="substation"](area.searchArea)(user_touched:${userFilter});
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        ;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: data=${encodeURIComponent(query)}
+        });
+        
+        if (!response.ok) {
+          throw new Error(Error fetching data: ${response.status});
+        }
+        
+        const data = await response.json();
+        const voltageData = processSubstationData(data);
+        displaySubstationResults(voltageData, resultsDiv);
+      } catch (error) {
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
+        console.error('Substation analysis error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Analyze Substations';
+      }
+    });
+
+    function processSubstationData(data) {
+      const voltageCounts = {};
+      
+      data.elements.forEach(element => {
+        if (element.tags && element.tags.voltage) {
+          const voltage = processVoltage(element.tags.voltage);
+          const voltageKey = ${voltage} kV;
+          voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
+        }
+      });
+      
+      return voltageCounts;
+    }
+
+    function displaySubstationResults(data, container) {
+      if (Object.keys(data).length === 0) {
+        container.innerHTML = '<p>No substations found with voltage information.</p>';
+        return;
+      }
+      
+      const sorted = Object.entries(data)
+        .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+      
+      let html = '<h3>Substation Voltage Distribution</h3>';
+      html += '<table><tr><th>Voltage (kV)</th><th>Count</th></tr>';
+      
+      sorted.forEach(([voltage, count]) => {
+        html += <tr><td>${voltage}</td><td>${count}</td></tr>;
+      });
+      
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    // Generation Capacity Analysis - Exact implementation of Python script
+    document.getElementById('capacityForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const country = document.getElementById('capacityCountry').value.trim();
+      const usersInput = document.getElementById('capacityUsers').value.trim();
+      const users = usersInput ? usersInput.split(',').map(u => u.trim()) : [];
+      const totalCapacityInput = document.getElementById('totalCapacity').value.trim();
+      const button = document.getElementById('capacitySubmit');
+      const resultsDiv = document.getElementById('capacityResults');
+      
+      button.disabled = true;
+      button.innerHTML = 'Calculating <span class="loading"></span>';
+      resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
+      
+      try {
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
+          [out:json][timeout:400];
+          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
+          .admin_boundary map_to_area -> .searchArea;
+          
+          (
+            node["power"="plant"](area.searchArea)(user_touched:${userFilter});
+            way["power"="plant"](area.searchArea)(user_touched:${userFilter});
+            relation["power"="plant"](area.searchArea)(user_touched:${userFilter});
+          );
+          
+          out body;
+          >;
+          out skel qt;
+        ;
+        
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: data=${encodeURIComponent(query)}
+        });
+        
+        if (!response.ok) {
+          throw new Error(Error fetching data: ${response.status});
+        }
+        
+        const data = await response.json();
+        const totalUserCapacity = processCapacityData(data);
+        const totalCountryCapacity = convertToMW(totalCapacityInput);
+        
+        let html = <h3>Generation Capacity Analysis</h3>;
+        html += <p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>;
+        
+        if (totalCountryCapacity > 0) {
+          // Fixed percentage calculation - was previously multiplying by 100 twice
+          const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
+          html += <p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>;
+        } else if (totalCapacityInput) {
+          html += <p class="error">Invalid total capacity input: ${totalCapacityInput}</p>;
+        }
+        
+        resultsDiv.innerHTML = html;
+      } catch (error) {
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
+        console.error('Capacity analysis error:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Calculate Capacity';
+      }
+    });
+
+    function processCapacityData(data) {
+      let totalCapacity = 0;
+      if (data.elements) {
+        for (const element of data.elements) {
+          if (element.tags && element.tags["plant:output:electricity"]) {
+            totalCapacity += convertToMW(element.tags["plant:output:electricity"]);
+          }
+        }
+      }
+      return totalCapacity;
+    }
+
+    function convertToMW(value) {
+      if (!value) return 0;
+      
+      const str = String(value).trim().toLowerCase();
+      const match = str.match(/(\d+(?:\.\d+)?)([a-z]*)/);
+      
+      if (match) {
+        const num = parseFloat(match[1]);
+        const unit = match[2];
+        
+        if (unit.includes('kw')) {
+          return num / 1000;
+        } else if (unit.includes('gw')) {
+          return num * 1000;
+        }
+        return num; // Assume MW
+      }
+      return 0;
+    }
   </script>
 </body>
 </html>
