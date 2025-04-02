@@ -238,7 +238,7 @@
   <script>
     // Toggle tool sections
     function toggleTool(toolId) {
-      const content = document.getElementById(`${toolId}-content`);
+      const content = document.getElementById(${toolId}-content);
       const header = content.previousElementSibling;
       const arrow = header.querySelector('span');
       
@@ -286,7 +286,7 @@
       resultsDiv.innerHTML = '<p>Fetching power line data from OSM...</p>';
       
       try {
-        const query = `
+        const query = 
           [out:json][timeout:400];
 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
@@ -303,18 +303,18 @@
           out body;
           >;
           out skel qt;
-        `;
+        ;
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `data=${encodeURIComponent(query)}`
+          body: data=${encodeURIComponent(query)}
         });
         
         if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
+          throw new Error(Error fetching data: ${response.status});
         }
         
         const data = await response.json();
@@ -347,13 +347,13 @@
           }
         });
 
-        resultsDiv.innerHTML = `
+        resultsDiv.innerHTML = 
           <h3>Power Line Length Analysis</h3>
           <p>Total length of power lines and cables mapped by ${username} in ${country}:</p>
           <p><strong>${totalLength.toFixed(2)} km</strong></p>
-        `;
+        ;
       } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
         console.error('Power line length analysis error:', error);
       } finally {
         button.disabled = false;
@@ -375,8 +375,8 @@
       resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
       
       try {
-        const userFilter = users.map(u => `"${u}"`).join(',');
-        const query = `
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
@@ -402,25 +402,25 @@
           out body;
           >;
           out skel qt;
-        `;
+        ;
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `data=${encodeURIComponent(query)}`
+          body: data=${encodeURIComponent(query)}
         });
         
         if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
+          throw new Error(Error fetching data: ${response.status});
         }
         
         const data = await response.json();
         const towerVoltages = processTowerData(data);
         displayTowerResults(towerVoltages, resultsDiv);
       } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
         console.error('Tower analysis error:', error);
       } finally {
         button.disabled = false;
@@ -448,7 +448,7 @@
           const voltage = processVoltage(element.tags.voltage);
           element.nodes.forEach(nodeId => {
             if (towers[nodeId] && !countedTowers.has(nodeId)) {
-              const voltageKey = `${voltage} kV`;
+              const voltageKey = ${voltage} kV;
               towerVoltages[voltageKey] = (towerVoltages[voltageKey] || 0) + 1;
               countedTowers.add(nodeId);
             }
@@ -489,11 +489,11 @@
         .sort((a, b) => a.voltage - b.voltage);
       
       let html = '<h3>Voltage Distribution of Towers and HV Poles</h3>';
-      html += `<p>Total towers and poles: ${totalTowers}</p>`;
+      html += <p>Total towers and poles: ${totalTowers}</p>;
       html += '<table><tr><th>Voltage (kV)</th><th>Number of Towers/Poles</th></tr>';
       
       sortedResults.forEach(({ voltage, count }) => {
-        html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
+        html += <tr><td>${voltage}</td><td>${count}</td></tr>;
       });
       
       html += '</table>';
@@ -514,8 +514,8 @@
       resultsDiv.innerHTML = '<p>Fetching substation data from OSM...</p>';
       
       try {
-        const userFilter = users.map(u => `"${u}"`).join(',');
-        const query = `
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
@@ -529,25 +529,25 @@
           out body;
           >;
           out skel qt;
-        `;
+        ;
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `data=${encodeURIComponent(query)}`
+          body: data=${encodeURIComponent(query)}
         });
         
         if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
+          throw new Error(Error fetching data: ${response.status});
         }
         
         const data = await response.json();
         const voltageData = processSubstationData(data);
         displaySubstationResults(voltageData, resultsDiv);
       } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
         console.error('Substation analysis error:', error);
       } finally {
         button.disabled = false;
@@ -561,7 +561,7 @@
       data.elements.forEach(element => {
         if (element.tags && element.tags.voltage) {
           const voltage = processVoltage(element.tags.voltage);
-          const voltageKey = `${voltage} kV`;
+          const voltageKey = ${voltage} kV;
           voltageCounts[voltageKey] = (voltageCounts[voltageKey] || 0) + 1;
         }
       });
@@ -582,7 +582,7 @@
       html += '<table><tr><th>Voltage (kV)</th><th>Count</th></tr>';
       
       sorted.forEach(([voltage, count]) => {
-        html += `<tr><td>${voltage}</td><td>${count}</td></tr>`;
+        html += <tr><td>${voltage}</td><td>${count}</td></tr>;
       });
       
       html += '</table>';
@@ -604,8 +604,8 @@
       resultsDiv.innerHTML = '<p>Calculating generation capacity...</p>';
       
       try {
-        const userFilter = users.map(u => `"${u}"`).join(',');
-        const query = `
+        const userFilter = users.map(u => "${u}").join(',');
+        const query = 
           [out:json][timeout:400];
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
           .admin_boundary map_to_area -> .searchArea;
@@ -619,38 +619,38 @@
           out body;
           >;
           out skel qt;
-        `;
+        ;
         
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `data=${encodeURIComponent(query)}`
+          body: data=${encodeURIComponent(query)}
         });
         
         if (!response.ok) {
-          throw new Error(`Error fetching data: ${response.status}`);
+          throw new Error(Error fetching data: ${response.status});
         }
         
         const data = await response.json();
         const totalUserCapacity = processCapacityData(data);
         const totalCountryCapacity = convertToMW(totalCapacityInput);
         
-        let html = `<h3>Generation Capacity Analysis</h3>`;
-        html += `<p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>`;
+        let html = <h3>Generation Capacity Analysis</h3>;
+        html += <p>Total capacity added by users: ${totalUserCapacity.toFixed(2)} MW</p>;
         
         if (totalCountryCapacity > 0) {
           // Fixed percentage calculation - was previously multiplying by 100 twice
           const percentage = (totalUserCapacity / totalCountryCapacity) * 100;
-          html += `<p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>`;
+          html += <p>Users have mapped ${percentage.toFixed(2)}% of the total country capacity (${totalCountryCapacity.toFixed(2)} MW).</p>;
         } else if (totalCapacityInput) {
-          html += `<p class="error">Invalid total capacity input: ${totalCapacityInput}</p>`;
+          html += <p class="error">Invalid total capacity input: ${totalCapacityInput}</p>;
         }
         
         resultsDiv.innerHTML = html;
       } catch (error) {
-        resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultsDiv.innerHTML = <div class="error">Error: ${error.message}</div>;
         console.error('Capacity analysis error:', error);
       } finally {
         button.disabled = false;
