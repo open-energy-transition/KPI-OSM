@@ -295,13 +295,13 @@
     }
 
     // --- New: Function to determine the appropriate UTM zone for a given country ---
-    // This function uses the Overpass API to fetch the admin boundary center.
+    // This function uses the Overpass API with your working query.
     async function getUTMZoneForCountry(country) {
       try {
         const query = `
-          [out:json][timeout:25];
-          relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i];
-          out center 1;
+[out:json][timeout:40];
+relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i];
+out center 1;
         `;
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
