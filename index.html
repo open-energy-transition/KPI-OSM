@@ -375,8 +375,7 @@
       resultsDiv.innerHTML = '<p>Fetching tower data from OSM...</p>';
       
       try {
-        const userFilter = users.length > 0 ? users.map(u => `"${u}"`).join(',') : "";
-        
+        const userFilter = users.map(u => `"${u}"`).join(',');
         const query = `
           [out:json][timeout:400]; 
           relation["boundary"="administrative"][~"^name(:en)?$"~"${country}", i] -> .admin_boundary;
@@ -459,7 +458,7 @@
       
       return {
         voltageCounts: towerVoltages,
-        totalTowers: countedTowers.size // Fixed: use countedTowers.size instead of Object.keys(towers).length
+        totalTowers: Object.keys(towers).length  // KEPT THE ORIGINAL: Show all towers, not just counted ones
       };
     }
 
