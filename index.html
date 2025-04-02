@@ -139,6 +139,8 @@
       to { transform: rotate(360deg); }
     }
   </style>
+  <!-- Include Proj4js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.5/proj4.js"></script>
 </head>
 <body>
   <div class="container">
@@ -258,22 +260,40 @@
       document.getElementById('linelength-content').style.display = 'none';
     });
 
-    // Haversine distance calculation function
+    // === UTM Conversion Functions for Line Length Analysis ===
+    // Define projections: WGS84 and your local UTM zone
+    const wgs84 = 'EPSG:4326';
+    const utmZone33N = 'EPSG:32633'; // Replace with your appropriate UTM zone
+
+    // Convert coordinate from WGS84 to UTM using Proj4js. Note: Proj4js expects [lon, lat]
+    function convertToUTM(lat, lon) {
+      return proj4(wgs84, utmZone33N, [lon, lat]);
+    }
+
+    // Calculate Euclidean distance in UTM coordinates (result in km)
+    function euclideanDistance(coord1, coord2) {
+      const [x1, y1] = convertToUTM(coord1[0], coord1[1]);
+      const [x2, y2] = convertToUTM(coord2[0], coord2[1]);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      return Math.sqrt(dx * dx + dy * dy) / 1000; // Convert meters to km
+    }
+
+    // Existing Haversine function (still available if needed)
     function haversineDistance(coord1, coord2) {
       const [lat1, lon1] = coord1;
       const [lat2, lon2] = coord2;
-      const R = 6371; // Earth radius in km
+      const R = 6371; // Earth's radius in km
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
     }    
 
-    // Power Line Length Analysis Tool
+    // Power Line Length Analysis Tool using UTM-based calculations
     document.getElementById('linelengthForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const country = document.getElementById('linelengthCountry').value.trim();
@@ -328,7 +348,7 @@
           }
         });
 
-        // Calculate total length
+        // Calculate total length using UTM-based Euclidean distance
         data.elements.forEach(element => {
           if (element.type === "way") {
             const wayNodes = element.nodes || [];
@@ -339,7 +359,7 @@
               const node2 = wayNodes[i + 1];
               
               if (nodes[node1] && nodes[node2]) {
-                wayLength += haversineDistance(nodes[node1], nodes[node2]);
+                wayLength += euclideanDistance(nodes[node1], nodes[node2]);
               }
             }
             
