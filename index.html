@@ -504,10 +504,15 @@ document.getElementById('linelengthForm').addEventListener('submit', async funct
           });
         }
       });
-      
+
+      // If no towers got associated with a voltage, assign all as "Unknown"
+  if (Object.keys(towerVoltages).length === 0) {
+    // Alternatively, you could count only those nodes not already counted, but if none were processed then:
+    towerVoltages["Unknown"] = Object.keys(towers).length;
+  }
       return {
         voltageCounts: towerVoltages,
-        totalTowers: Object.keys(towers).length  // KEPT THE ORIGINAL: Show all towers, not just counted ones
+        totalTowers: Object.keys(towers).length  
       };
     }
 
