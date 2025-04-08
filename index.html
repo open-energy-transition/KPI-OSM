@@ -138,6 +138,24 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    .github-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #333;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transition: background-color 0.3s;
+  z-index: 1000;
+}
+
+.github-button:hover {
+  background-color: #555;
+}
   </style>
 </head>
 <body>
@@ -745,5 +763,8 @@ document.getElementById('linelengthForm').addEventListener('submit', async funct
       return 0;
     }
   </script>
+<!-- GitHub Repository Button -->
+<a href="https://github.com/open-energy-transition/KPI-OSM" target="_blank" class="github-button">Back to GitHub Repo</a>
+
 </body>
 </html>
