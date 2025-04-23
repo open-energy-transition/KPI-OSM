@@ -24,7 +24,7 @@ This script gives you the total amount of substations you have mapped/edited in 
 
 ## :straight_ruler: Power line length
 This script gives you the total line length in km of power lines (ways) edited by you. It also gives a table with the distribution based on voltage. The line length is calculated using OSM coordinates of the nodes the lines are connected to. The projection used by OSM is WGS84 EPSG:4326. Progress could be made by integrating a more precise local UTM projection. <br>
-⚠️One big caveat with line length attribution to a user, is that it depends on how you have mapped the way (power lines). If you "continue" the way from someone else, then that entire way will be attributed to you and thus the line length your user has touched is overinflated. So power line length for users as a kpi is not the best.
+
 
 
 
