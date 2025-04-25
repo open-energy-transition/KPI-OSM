@@ -10,6 +10,7 @@
   node["power"="pole"](user:"Tobias Augspurger");
   node["power"="pole"](user:"Mwiche");
   node["power"="pole"](user:"davidtt92");
+  node["power"="tower"](user:"relaxxe");
 );
 
 out body;
